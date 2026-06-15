@@ -1,19 +1,34 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 public class MenuController : MonoBehaviour
 {
     [SerializeField] private GameObject MenuUI;
-    void Start()
-    {
+    [SerializeField] private bool isPaused = false;
 
+    void Start()    
+    {
+        //GameObject.Find("PlayerNameMenu").GetComponent<TextMeshProUGUI>().text = "Name:" + SaveController.LoadPlayerName;
         MenuUI.SetActive(false);
     }
+
+
 
     public void OpenMenu(InputAction.CallbackContext context)
     {
         Debug.Log("button pressed :"+ context);
         MenuUI.SetActive(!MenuUI.activeSelf);
-        //need to stop time? or sumthing
+
+        isPaused = !isPaused;
+
+        if (isPaused)
+        {           
+            Time.timeScale = 0f;
+        }
+        else
+        {        
+            Time.timeScale = 1f;
+        }
     }
 }
