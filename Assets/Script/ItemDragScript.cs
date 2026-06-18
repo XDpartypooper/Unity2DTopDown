@@ -1,15 +1,20 @@
+using System.Linq;
 using System.Net.NetworkInformation;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
-public class ItemDragScript : MonoBehaviour,IBeginDragHandler, IDragHandler, IEndDragHandler
+public class ItemDragScript : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
-    [SerializeField]  private Transform OriginalParent;
-    [SerializeField]  CanvasGroup CG;
+    [SerializeField] private Transform OriginalParent;
+    [SerializeField] CanvasGroup CG;
+
+    private float MinDropDistance = 2f;
+    private float MaxDropDistance = 3f;
 
     void Start()
     {
-        CG=this.GetComponentInParent<CanvasGroup>();
+        CG = this.GetComponentInParent<CanvasGroup>();
     }
     public void OnBeginDrag(PointerEventData eventData)
     {
@@ -21,123 +26,113 @@ public class ItemDragScript : MonoBehaviour,IBeginDragHandler, IDragHandler, IEn
 
     public void OnDrag(PointerEventData eventData)
     {
-       transform.position= eventData.position;//follow mouse
+        transform.position = eventData.position;//follow mouse
     }
 
-    
+    [SerializeField] SlotsScript originalSlot;
     public void OnEndDrag(PointerEventData eventData)
     {
         CG.blocksRaycasts = true;
         CG.alpha = 1f;
-        bool isEQ = false;
 
         SlotsScript Dropslot = eventData.pointerEnter?.GetComponent<SlotsScript>();
-        SlotsScript originalSlot = OriginalParent.GetComponent<SlotsScript>();
+        originalSlot = OriginalParent.GetComponent<SlotsScript>();
+        GameObject dropitem = eventData.pointerEnter;
 
-        EQSlotScript OrignalEQDropslot = OriginalParent.GetComponent<EQSlotScript>();
-        EQSlotScript EQDropslot = eventData.pointerEnter?.GetComponent<EQSlotScript>();
 
-        var originalParent = OrignalEQDropslot?.transform ?? originalSlot?.transform;
-
-        if (OrignalEQDropslot != null)
-        {
-            isEQ = OrignalEQDropslot.CurrentEquipment.GetComponent<Item>().IsEquipment;
-        }
-        else if (originalSlot != null)
-        {
-            isEQ = originalSlot.CurrentItem.GetComponent<Item>().IsEquipment;
-        }
-
-      
         if (Dropslot == null)// if the slot is empty
         {
-            GameObject dropitem = eventData.pointerEnter;
+            dropitem = eventData.pointerEnter;
             if (dropitem != null)
             {
                 Dropslot = dropitem.GetComponentInParent<SlotsScript>();
             }
-        }
-        else if (EQDropslot != null)
-        {
-            GameObject dropitem = eventData.pointerEnter;
-            if (originalSlot.CurrentItem.GetComponent<Item>().IsEquipment)//if DRAGGED object is equipment
-            {
-                EQDropslot = dropitem.GetComponentInParent<EQSlotScript>();
-            }
+
         }
 
-        if (Dropslot != null)//main slots
+        if (Dropslot != null)// if SLot are detected
         {
-            //Dropslot.CurrentItem.transform.SetParent(originalParent);       
-            if (Dropslot.CurrentItem != null)
+            if (Dropslot.WeaponSlotType == 0)
             {
-                if (originalSlot != null)
+                if (Dropslot.CurrentItem != null)// if current slot has an item
                 {
+                    Dropslot.CurrentItem.transform.SetParent(OriginalParent);
                     originalSlot.CurrentItem = Dropslot.CurrentItem;
+                    Dropslot.CurrentItem.GetComponent<RectTransform>().anchoredPosition = Vector2.zero;
                 }
                 else
                 {
-                    EQDropslot.CurrentEquipment = Dropslot.CurrentItem;
+                    originalSlot.CurrentItem = null;
                 }
-                Dropslot.CurrentItem.GetComponent<RectTransform>().anchoredPosition = Vector2.zero;
+
+                transform.SetParent(Dropslot.transform);
+                Dropslot.CurrentItem = this.gameObject;
             }
-            else
+            else if (Dropslot.WeaponSlotType == this.GetComponent<Item>().EquipmentSlotType)
             {
-                if (originalSlot != null)
+
+                if (Dropslot.CurrentItem != null)// if current slot has an item
+                {
+                    Dropslot.CurrentItem.transform.SetParent(OriginalParent);
+                    originalSlot.CurrentItem = Dropslot.CurrentItem;
+                    Dropslot.CurrentItem.GetComponent<RectTransform>().anchoredPosition = Vector2.zero;
+                }
+                else
                 {
                     originalSlot.CurrentItem = null;
                 }
-                else if(EQDropslot!= null)
-                {
-                    EQDropslot.CurrentEquipment = null;
-                }
-               
-            }
 
-            transform.SetParent(Dropslot.transform);
-            Dropslot.CurrentItem = this.gameObject;
-        }
-        else if (EQDropslot != null && isEQ)//eq
-        {
-            //originalParent
-            if (EQDropslot.CurrentEquipment != null)
-            {
-                if (originalSlot != null)
-                {                  
-                    EQDropslot.CurrentEquipment.transform.SetParent(originalParent);
-                    originalSlot.CurrentItem = EQDropslot.CurrentEquipment;
-                    EQDropslot.CurrentEquipment.GetComponent<RectTransform>().anchoredPosition = Vector2.zero;
-                }
-                else if(EQDropslot != null)
-                {
-                    EQDropslot.CurrentEquipment.transform.SetParent(originalParent);
-                    OrignalEQDropslot.CurrentEquipment = EQDropslot.CurrentEquipment;
-                    EQDropslot.CurrentEquipment.GetComponent<RectTransform>().anchoredPosition = Vector2.zero;
-                }             
+                transform.SetParent(Dropslot.transform);
+                Dropslot.CurrentItem = this.gameObject;
             }
             else
             {
-                if (originalSlot != null)
-                {
-                    originalSlot.CurrentItem = null;
-                }
-                else if (EQDropslot != null)
-                {
-                    EQDropslot.CurrentEquipment = null;
-                }
+                transform.SetParent(originalSlot.transform);
             }
 
-            transform.SetParent(EQDropslot.transform);
-            EQDropslot.CurrentEquipment = this.gameObject;
         }
         else
         {
-            transform.SetParent(OriginalParent);
+            if (!isinInventory(eventData.position))// if outside drop item
+            {
+                DropItem(originalSlot);
+            }
+            else
+            {
+                transform.SetParent(originalSlot.transform);
+            }
+
         }
-       
         GetComponent<RectTransform>().anchoredPosition = Vector2.zero;
     }
+
+    bool isinInventory(Vector2 MousePos)
+    {
+        RectTransform inventoryRect = OriginalParent.parent.GetComponent<RectTransform>();
+        return RectTransformUtility.RectangleContainsScreenPoint(inventoryRect, MousePos);
+    }
+
+    void DropItem(SlotsScript originalSlot)
+    {
+        originalSlot.CurrentItem = null;
+
+        Transform Player = GameObject.FindGameObjectWithTag("Player")?.transform;
+        if (Player == null)
+        {
+            Debug.LogError("Missing Player");
+            return;
+        }
+
+        Vector2 dropoffSet = Random.insideUnitCircle.normalized * Random.Range(MinDropDistance, MaxDropDistance);
+        Vector2 DropPos = (Vector2)Player.position + dropoffSet;
+
+        Instantiate(gameObject, DropPos, Quaternion.identity);
+
+        Destroy(gameObject);
+    }
 }
+
+
 
 
 

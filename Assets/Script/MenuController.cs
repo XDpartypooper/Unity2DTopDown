@@ -7,10 +7,12 @@ public class MenuController : MonoBehaviour
     [SerializeField] private GameObject MenuUI;
     [SerializeField] private bool isPaused = false;
 
-    void Start()    
-    {
+    void Start()
+    { 
+        GameObject.Find("UI").SetActive(true);// in case UI is disabled in editor
         //GameObject.Find("PlayerNameMenu").GetComponent<TextMeshProUGUI>().text = "Name:" + SaveController.LoadPlayerName;
         MenuUI.SetActive(false);
+
     }
 
 

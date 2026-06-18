@@ -1,20 +1,25 @@
 using UnityEngine;
+using UnityEngine.UI;
 
 public class Item : MonoBehaviour
 {
-    [SerializeField] public bool IsEquipment = false;
-    [SerializeField] public int EquipmentSlotType;
-    [SerializeField] public int ID;
+    public int EquipmentSlotType;
+    public int ID;
 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    public string Name;
+
+    [Header("Stats")]
+    public int Strength;
+    public int Defense;
+    public int Health;
+    public virtual void pickup()
     {
-        
+        Sprite ItemIcon = GetComponent<Image>().sprite;
+        if (PickupUI.Instance != null)
+        {
+            PickupUI.Instance.ShowItemPickup(Name, ItemIcon);
+        }
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
+
 }
